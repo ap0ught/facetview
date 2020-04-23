@@ -1,19 +1,29 @@
-FacetView_ is a pure javascript frontend for ElasticSearch or SOLR search
+FacetView_ is a pure javascript frontend for ElasticSearch search
 indices.
+
+Facetview2
+==========
+
+A more modular codebase is available at https://github.com/CottageLabs/facetview2
+
+Old facetview docs below
+========================
+
+(This used to work against SOLR too, but the need to maintain support for that became less, and is now not a priority. So has been removed altogether. If anyone needs it, it could be added back in by writing an alternative to the elasticsearchquery() with a solrsearchquery(), and making sure the returned resultset can be parsed out properly. Used to work fine so it can be done, but as new functionality like nesting and so on was brought in, it became less important.)
 
 It's been developed as a jQuery plugin and lets you easily embed a faceted
 browse front end into any web page.
 
 .. _FacetView: http://okfnlabs.org/facetview/
 
-Development is now taking place in this repo: http://github.com/okfn/facetview
+Development of this version is NOT currently active. Facetview1 repo: http://github.com/okfn/facetview
 
 
 Demo
 ====
 
-See http://okfnlabs.org/facetview/ or just take a look at index.html (if you
-have the source).
+See http://okfnlabs.org/facetview/ or if you have the source just take a look 
+at index.html or simple.html
 
 
 Status
@@ -29,32 +39,42 @@ Using FacetView
 
 Add the following code to your web page::
 
-  <script src="JQUERY-SOURCE"></script>
-  <script type="text/javascript" src="YOUR-FACETVIEW-SOURCE"></script>
-  
+  <script type="text/javascript" src="vendor/jquery/1.7.1/jquery-1.7.1.min.js"></script>
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <script type="text/javascript" src="vendor/bootstrap/js/bootstrap.min.js"></script>  
+  <script type="text/javascript" src="vendor/linkify/1.0/jquery.linkify-1.0-min.js"></script>  
+  <link rel="stylesheet" href="vendor/jquery-ui-1.8.18.custom/jquery-ui-1.8.18.custom.css">
+  <script type="text/javascript" src="vendor/jquery-ui-1.8.18.custom/jquery-ui-1.8.18.custom.min.js"></script>
+  <script type="text/javascript" src="jquery.facetview.js"></script>
+  <link rel="stylesheet" href="css/facetview.css">
+  <script type="text/javascript" src="vendor/d3/d3.min.js"></script>
+  <script type="text/javascript" src="vendor/d3/d3.geom.min.js?2.1.3"></script>
+  <script type="text/javascript" src="vendor/d3/d3.layout.min.js?2.1.3"></script>
+
+
+* BUT change the src URLs to something sensible depending on where you install 
+  the files; or something different if you have the files available already.
+  If using your own, NOTE the versions; particularly bootstrap - we are on the 2.x
+* d3 scripts can be dropped if you intend to disable filter visualisations.
+
+
+Then add a script somewhere to your page that actually calls and sets up the 
+facetview on a particular page element:
+
   <script type="text/javascript">
-  jQuery(document).ready(function() {
-      jQuery('jquery-selector').facetview();
-  });
+    jQuery(document).ready(function($) {
+      $('.facet-view-simple').facetview({
+        search_url: 'http://bibsoup.net/query?',
+        search_index: 'elasticsearch',
+        facets: [
+            {'field': 'publisher.exact', 'size': 100, 'order':'term', 'display': 'publisher'},
+            {'field': 'author.name.exact', 'display': 'author'},
+            {'field': 'year.exact', 'display': 'year'}
+        ],
+      });
+    });
   </script>
 
-* JQUERY-SOURCE – change this to wherever you get your jQuery from. For
-  example, https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js. If you
-  already have jQuery on your page / site, then you can miss out that first
-  script tag entirely.
-* YOUR-FACETVIEW-SOURCE – change this to whatever online you put your copy of
-  facetview at. For example, http://bibsoup.net/static/jquery.facetview.js
-* YOUR-PAGE-PART – change this to identify whatever part of the page you want
-  to append the FacetView into. For example, ‘body’ would do, or you could have
-  a <div> on your page like this::
-
-    <div id="your-page-part></div>
-
-.. note::
-  
-    You may also want to include css. The out of the box html and css is
-    Bootstrap plus css/facetview.css. However, you are welcome to customize
-    this or add your own.
 
 Now that you have everything ready, you will probably want to customize to
 get it looking the way you want it.
@@ -69,80 +89,86 @@ customisation. There are a few ways to do this:
 Edit the config in jquery.facetview.js
 --------------------------------------
 
-Specify the defaults::
+View the config options near the top of the file to learn more. Some 
+important points:
 
-    var defaults = {
-        "config_file":false,
-        "default_filters":["journal","author","year"],
-        "result_display_headers":["title","journal","author"],
-        "ignore_fields":["_id","_rev"],
-        "show_advanced":false,
-        "search_url":"",
-        "search_index":"elasticsearch",
-        "default_url_params":{},
-        "freetext_submit_delay":"700",
-        "query_parameter":"q",
-        "q":"*:*",
-        "predefined_query_values":{},
-        "default_paging":{}
-    };
-
-* config_file – the location of an external config file (explained below)
-* default_filters – the filters you want to see down the right hand side, for
-  filtering your results by.
-* filter_query_key –
-* result_display_headers – which fields to display in the result list (other
-  fields are shown when you click on the result)
-* ignore_fields – any fields not to show at all
-* show_advanced – for now, just shows or hides the advanced panel, which at the
-  moment only gives the options to add more filters
-* search_url – the endpoint for submitting search queries to
+* search_url – you need this. Should be an elasticsearch or SOLR query endpoint
 * search_index – your index type, solr or elasticsearch
+* result_display - there is a long example of result display. It is a list of 
+  lists; each list represents a line; each line contains objects; the objects 
+  specify the field they should output, and pre and post information to surround
+  it with
+* display_images - if this is set to true, then facetview will attempt to find 
+  the first http://... that ends with .jpg / .jpeg / .png / .gif in each record;
+  if one is found, it will be displayed in the search result as a 100 x (up to) 
+  150 px thumbnail
 * default_url_params – parameters to pass through with every query; should
   include “wt”:”json” for SOLR queries to return JSON, and probably
   “facet.mincount”:1 for SOLR queries to ignore zero counts on facet values
-* freetext_submit_delay – the delay in milliseconds before the free text search
-  field triggers a result update
-* query_parameter – the name of the search query parameter that should be
-  passed to your index. usually this is “q”
-* q – the default blank search query parameter, such as “:“
-* predefined_query_values – any values you want embedded into the query every
-  time a query is submitted, to restrict the result set
-* default_paging – default result size, and default starting result
+* predefined_filters – use these to apply some filters that will be appended 
+  to every search. For example, customise a facetview display to only show 
+  records with a particular owner / collection / tag / whatever
 
 Pass in config settings when calling FacetView
 ----------------------------------------------
 
-All of the above settings can also be defined when calling FacetView, and will
+All of the settings can also be defined when calling FacetView, and will
 overwrite the values set in the file itself. So you can do something like
 this::
 
   <script type="text/javascript">
   jQuery(document).ready(function() {
       jQuery('YOUR-PAGE-PART').facetview({
-          "search_index":"solr",
-          "query_parameter":"q"
+          "search_index":"elasticsearch",
+          ...
       });
   });
   </script>
 
-Provide the location of an external config file
------------------------------------------------
+Passing config parameters in the URL
+------------------------------------
 
-(in development)
+Configs can be passed on the URL as query parameters. For example, 
+?q=blah will set the starting search to "blah". You can add complex 
+queries as JSON objects, such as ?paging={"size":20,"from":10}. Nice...
 
-A JSON file can be made available anywhere on the web with any of the above
-listed settings in it. Then, just pass the URL of your config file when you
-call FacetView, and it will read that config file for you.
+Providing the location of an external config file
+-------------------------------------------------
+
+A file can be made available anywhere on the web (depending, keep reading) 
+with any of the above listed settings in it (written in the usual way for a 
+JSON object). Then, just pass the URL of your config file when you call 
+FacetView - as a parameter called "config_file", and it will attempt to read 
+that config file for you.
+
+The first attempt will make a JSONP request to the URL you specify, so if your 
+file is properly set up on a server that enables it to respond to such a request, 
+you can make these calls to any address on the internet.
+
+If JSONP call fails, then a normal GET will be executed. So if the file is under 
+the same domain, it should be retrievable. In this case, the file must be 
+normally readable to a GET request - e.g. it should have a .html extension, or 
+be otherwise set up to return your config as a string to the GET request. The 
+JSON config object is then parsed and read in.
+
+Config precedence
+-----------------
+
+When you introduce a new config object, they are merged into earlier configs with 
+overwrite. So any config you specify in facetview.jquery.js will be overwritten 
+and appended with newer info from any config passed in when calling facetview, 
+which is overwritten by config parameters passed in the URL, 
+and a call to a remote config file will similarly overwrite and append to all 
+previous.
 
 Change the layout by making and using a custom CSS file
 -------------------------------------------------------
 
-When FacetView runs, it calls a default CSS file. Take a look at the
-jquery.facetview.js file – at the top, it defines a CSS file location, then
-calls it into your page. You can copy that CSS file, make your own version,
-then call your version instead. This will allow you to style it however you
-want.
+Facetview uses the latest `twitter bootstrap`_. When you embed facetview in a page, 
+you need to include the calls to bootstrap js and css files (see the example 
+index.html here for more info). You could restyle facetview any way you want, 
+either with or without bootstrap - although it would be a hassle to strip 
+bootstrap out; recommend working with or around it.
 
 
 Copyright and License
@@ -152,5 +178,6 @@ Copyright 2011 Open Knowledge Foundation and Cottage Labs.
 
 Licensed under the `MIT License`_
 
+.. _twitter bootstrap: http://twitter.github.com/bootstrap/
 .. _MIT License: http://www.opensource.org/licenses/mit-license.php
 
